@@ -1,0 +1,116 @@
+---
+title: "Predict activity type using machine learning"
+author: "Ian King"
+date: "Saturday, September 26, 2015"
+output: html_document
+---
+
+###1. Summary  
+
+This report shows the development of a machine learning algrithm that can predict the manner in which people did exercise. The manner is stored as *classe* in the data set.
+
+The raw data is from [Groupware@LES](http://groupware.les.inf.puc-rio.br/har). For the physical meaning of each columns, please refer to [this pdf file](http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf).
+
+###2. Data Processing  
+####2.1 Load Data and Data Exploration  
+
+First load necessary libraries and readin the train and test data.     
+```{r}
+library(caret)  
+library(rpart)
+library(randomForest)  
+library(lattice)  
+
+rawdata<-read.csv(file="pml-training.csv", na.strings=c("","NA"))  
+
+submitdata <- read.csv(file="pml-testing.csv", na.strings=c("","NA"))  
+```   
+
+Use functions like *summary*,*str*,*names(data)* and etc. to get a general understanding of the raw data. There are **19622** observations of **160** variables and the **classe** is the last column.  
+
+
+####2.2 Cleaning Data (important!!!)     
+
+It is notable that there are a number of clummns with substantial amount of **NA** values. It is intuitive to remove columns whose major part is NA from the predictor list.     
+Also, according to the description in the [paper](http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf), the first **7 columns** in the raw data are not physical measurment but index to distinguish different experiment volunteer, so these columns should also not be regarded as predictors.  
+The code below the first 7 columns, then remove column with **more than 6000 NAs**. (please note more than 6000 NAs means about 30% of the column is empty so this column is **not** good predictor). Same operations are applied to the test data, only with smaller NA threshold.   
+
+```{r}  
+tdata<-rawdata  
+
+tdata <- subset(tdata, select=-c(X,user_name,raw_timestamp_part_1,raw_timestamp_part_2,cvtd_timestamp,new_window,num_window))  
+
+tdata <- tdata[,colSums(is.na(tdata))<=6000]  
+
+sdata <- subset(submitdata, select=-c(X,user_name,raw_timestamp_part_1,raw_timestamp_part_2,cvtd_timestamp,new_window,num_window))  
+
+sdata <- sdata[,colSums(is.na(sdata))<=10]  
+
+```   
+
+###3.Model development  
+####3.1 Data partition and cross validation  
+
+Since we cannot use the test set when building the model, so we need to split the training data set into its own training/test sets to do the **cross validation**. This is especially important to evaluate the quanlity of the developed model, pick the type of prediction function to use and compare different predictors. The code below split the traning data set into 70% as training set and 30% as testing set.  
+
+```{r}  
+inTrain <- createDataPartition(y=tdata$classe,p=0.7,list=FALSE)  
+
+training <- tdata[inTrain,]  
+
+testing <- tdata[-inTrain,]  
+```  
+
+####3.2 Develop and compare differences between possible models  
+Predicting the **classe** is a classification problem. According to the lectures, normal matchin learning algorithms include decision tree, random forest, Naive Bayes and etc. Here we will develop two models and compare them.   
+
+Once we develop the models, we need apply these model to predict the testing set. Using **confusionMatrix** can generate the **out-of-sample** accuracy/error.  
+
+1. The code below is for a regular decision three using "rpart" method:  
+
+```{r}
+set.seed(88791)
+modfit3<- train(classe~., data=training, method="rpart")
+pred3<-predict(modfit3,testing)
+tinfo3<-confusionMatrix(data=pred3, reference = testing$classe)
+ainfo3<-tinfo3$overall[1]
+kinfo3<-tinfo3$overall[2]
+tinfo3
+```  
+
+As we can see the out-of-sample accuracy is only `r ainfo3`, which is farily low. This is reasonalbe since without pruning/bootstrp the decision tree tends to have overfitting prolbmes so its out-of-sample error is large.   
+
+2. The code below is for a regular decision three using "rpart" method. It is known that ramdonForest has the bootstrap/crossvalidation within the algorithm itself so it should have a better performance that simply decision tree.  
+
+```{r}  
+modfit <- randomForest(classe~., data=training, importance=TRUE)  
+# It is important to make importance=TRUE to short the modeling time here
+pred<-predict(modfit,testing)  
+tinfo<-confusionMatrix(data=pred, reference = testing$classe) 
+ainfo<-tinfo$overall[1]  
+kinfo<-tinfo$overall[2]
+tinfo  
+```  
+As we can see the overall accuracy is `r ainfo`, **which means we could expect the out-of-sample error is only `r 1-ainfo`, which is farily low.**  
+
+The plot below compare the confusionMatrix accuracy and kappa value of these two models. Kappa measures the inter-rater agreement for categorical interms. It is generally thought to be a more robust since it takes into account the agreement occuring by chances.[source: wikipedia](https://en.wikipedia.org/wiki/Cohen%27s_kappa).  
+
+```{r}  
+pdata<-data.frame(c(ainfo,ainfo3),c(kinfo,kinfo3),c("random forest","decision tree"))  
+colnames(pdata)<-c("accuracy","kappa","algorithm")  
+pdata$algorithm <- as.factor(pdata$algorithm)  
+
+barplot(pdata$accuracy,names.arg=pdata$algorithm,xlab="algorithm",ylab="accuracy",col="blue4",ylim=c(0,1.0))
+title(main="Compare out-of-sample accuracy of two algorithms")
+
+```  
+
+```{r}  
+barplot(pdata$kappa,names.arg=pdata$algorithm,xlab="algorithm",ylab="kappa",col="red4",ylim=c(0,1.0))
+title(main="Compare kappa of two algorithms")
+```  
+
+
+####4 Summary 
+
+The  randomForest algorithm with importance=TRUE could give a relatively accurate model to predict "classe" varaibles. The generated model has been applied to the really test set and gave 100% accuracy.  
