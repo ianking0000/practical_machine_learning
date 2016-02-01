@@ -78,7 +78,7 @@ kinfo3<-tinfo3$overall[2]
 tinfo3
 ```  
 
-As we can see the out-of-sample accuracy is only `r ainfo3`, which is farily low. This is reasonalbe since without pruning/bootstrp the decision tree tends to have overfitting prolbmes so its out-of-sample error is large.   
+As we can see the out-of-sample accuracy is only `r ainfo3`, which is fairly low. This is reasonable since without pruning/bootstrp the decision tree tends to have overfitting prolbmes so its out-of-sample error is large.   
 
 2. The code below is for a regular decision three using "rpart" method. It is known that ramdonForest has the bootstrap/crossvalidation within the algorithm itself so it should have a better performance that simply decision tree.  
 
