@@ -1,13 +1,13 @@
 ---
 title: "Predict activity type using machine learning"
-author: "Ian King"
+author: "Xing Wang"
 date: "Saturday, September 26, 2015"
 output: html_document
 ---
 
 ###1. Summary  
 
-This report shows the development of a machine learning algrithm that can predict the manner in which people did exercise. The manner is stored as *classe* in the data set.
+This report shows the development of a machine learning algrithm that can predict the type in which people did exercise based on wearable device records. The type is stored as *classe* in the data set.
 
 The raw data is from [Groupware@LES](http://groupware.les.inf.puc-rio.br/har). For the physical meaning of each columns, please refer to [this pdf file](http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf).
 
@@ -51,7 +51,7 @@ sdata <- sdata[,colSums(is.na(sdata))<=10]
 ###3.Model development  
 ####3.1 Data partition and cross validation  
 
-Since we cannot use the test set when building the model, so we need to split the training data set into its own training/test sets to do the **cross validation**. This is especially important to evaluate the quanlity of the developed model, pick the type of prediction function to use and compare different predictors. The code below split the traning data set into 70% as training set and 30% as testing set.  
+Since we cannot use the test set when building the model, it is necessary to split the training data set into its own training/test sets to do the **cross validation**. This is especially important to evaluate the quanlity of the developed model, pick the type of prediction function to use and compare different predictors. The code below split the traning data set into 70% as training set and 30% as testing set.  
 
 ```{r}  
 inTrain <- createDataPartition(y=tdata$classe,p=0.7,list=FALSE)  
@@ -66,7 +66,7 @@ Predicting the **classe** is a classification problem. According to the lectures
 
 Once we develop the models, we need apply these model to predict the testing set. Using **confusionMatrix** can generate the **out-of-sample** accuracy/error.  
 
-1. The code below is for a regular decision three using "rpart" method:  
+#####3.2.1 The code below is for a regular decision three using "rpart" method:  
 
 ```{r}
 set.seed(88791)
@@ -80,7 +80,7 @@ tinfo3
 
 As we can see the out-of-sample accuracy is only `r ainfo3`, which is fairly low. This is reasonable since without pruning/bootstrp the decision tree tends to have overfitting prolbmes so its out-of-sample error is large.   
 
-2. The code below is for a regular decision three using "rpart" method. It is known that ramdonForest has the bootstrap/crossvalidation within the algorithm itself so it should have a better performance that simply decision tree.  
+#####3.2.2 The code below is for a regular decision tree using "rpart" method. It is known that ramdonForest has the bootstrap/crossvalidation within the algorithm itself so it should have a better performance that simply decision tree.  
 
 ```{r}  
 modfit <- randomForest(classe~., data=training, importance=TRUE)  
