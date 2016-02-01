@@ -113,4 +113,4 @@ title(main="Compare kappa of two algorithms")
 
 ####4 Summary 
 
-The  randomForest algorithm with importance=TRUE could give a relatively accurate model to predict "classe" varaibles. The generated model has been applied to the really test set and gave 100% accuracy.  
+The  randomForest algorithm with importance=TRUE could give a relatively accurate model to predict execise "classe" varaibles. The generated model has been applied to the test set and gave 100% accuracy.  
